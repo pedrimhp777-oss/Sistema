@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistemas de Controle de Versão | UNESC 2026</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Serif+Display&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --border: #1e1e2e;
+      --accent: #7c6af7;
+      --accent2: #f7a06a;
+      --accent3: #6af7c8;
+      --text: #e8e8f0;
+      --muted: #6b6b80;
+      --card: #16161f;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* NOISE TEXTURE */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: .4;
+    }
+
+    /* GRID BG */
+    .grid-bg {
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(124,106,247,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124,106,247,.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.2rem 3rem;
+      background: rgba(10,10,15,.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'Space Mono', monospace;
+      font-size: .85rem;
+      color: var(--accent);
+      letter-spacing: .05em;
+    }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a {
+      font-size: .8rem; color: var(--muted); text-decoration: none;
+      letter-spacing: .08em; text-transform: uppercase;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    /* HERO */
+    .hero {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: flex-start;
+      padding: 8rem 3rem 4rem;
+      max-width: 1200px; margin: 0 auto;
+    }
+    .hero-tag {
+      font-family: 'Space Mono', monospace;
+      font-size: .75rem; color: var(--accent3);
+      letter-spacing: .15em; text-transform: uppercase;
+      border: 1px solid rgba(106,247,200,.2);
+      padding: .3rem .8rem; border-radius: 2px;
+      margin-bottom: 2rem;
+      display: inline-block;
+      animation: fadeUp .6s ease both;
+    }
+    .hero h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(3rem, 7vw, 6rem);
+      line-height: 1.05;
+      max-width: 900px;
+      margin-bottom: 1.5rem;
+      animation: fadeUp .6s .1s ease both;
+    }
+    .hero h1 em {
+      font-style: italic; color: var(--accent);
+    }
+    .hero p {
+      font-size: 1.1rem; color: var(--muted); max-width: 560px;
+      line-height: 1.7; margin-bottom: 3rem;
+      animation: fadeUp .6s .2s ease both;
+    }
+    .hero-authors {
+      font-family: 'Space Mono', monospace;
+      font-size: .78rem; color: var(--muted);
+      border-left: 2px solid var(--accent);
+      padding-left: 1rem; line-height: 2;
+      animation: fadeUp .6s .3s ease both;
+    }
+    .hero-authors strong { color: var(--text); }
+
+    /* SCROLL INDICATOR */
+    .scroll-hint {
+      position: absolute; bottom: 2.5rem; left: 3rem;
+      font-family: 'Space Mono', monospace;
+      font-size: .7rem; color: var(--muted);
+      display: flex; align-items: center; gap: .6rem;
+      animation: fadeUp .6s .5s ease both;
+    }
+    .scroll-hint::before {
+      content: '';
+      display: block; width: 30px; height: 1px;
+      background: var(--muted);
+    }
+
+    /* GLOW BLOB */
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: .15;
+    }
+    .blob-1 { width: 600px; height: 600px; background: var(--accent); top: -200px; right: -100px; }
+    .blob-2 { width: 400px; height: 400px; background: var(--accent2); bottom: 100px; left: -150px; }
+
+    /* SECTIONS */
+    section { position: relative; z-index: 1; padding: 5rem 3rem; max-width: 1200px; margin: 0 auto; }
+
+    .section-label {
+      font-family: 'Space Mono', monospace;
+      font-size: .7rem; color: var(--accent); letter-spacing: .2em;
+      text-transform: uppercase; margin-bottom: 1rem;
+    }
+    .section-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(2rem, 4vw, 3rem);
+      margin-bottom: 1rem; line-height: 1.15;
+    }
+    .section-sub {
+      color: var(--muted); max-width: 600px; line-height: 1.7;
+      margin-bottom: 3rem;
+    }
+
+    /* TIMELINE */
+    .timeline { position: relative; padding-left: 2rem; }
+    .timeline::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 1px; background: linear-gradient(to bottom, var(--accent), transparent);
+    }
+    .timeline-item {
+      position: relative; padding: 0 0 3rem 2.5rem;
+      opacity: 0; transform: translateX(-20px);
+      transition: opacity .5s, transform .5s;
+    }
+    .timeline-item.visible { opacity: 1; transform: none; }
+    .timeline-dot {
+      position: absolute; left: -6px; top: 6px;
+      width: 13px; height: 13px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      background: var(--bg);
+    }
+    .timeline-year {
+      font-family: 'Space Mono', monospace;
+      font-size: .7rem; color: var(--accent2);
+      letter-spacing: .1em; margin-bottom: .4rem;
+    }
+    .timeline-name {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.4rem; margin-bottom: .5rem;
+    }
+    .timeline-desc { color: var(--muted); line-height: 1.7; font-size: .95rem; max-width: 600px; }
+    .badge {
+      display: inline-block; font-size: .65rem;
+      font-family: 'Space Mono', monospace;
+      padding: .2rem .6rem; border-radius: 2px;
+      margin-top: .6rem; letter-spacing: .08em;
+    }
+    .badge-central { background: rgba(247,160,106,.1); color: var(--accent2); border: 1px solid rgba(247,160,106,.3); }
+    .badge-dist { background: rgba(106,247,200,.1); color: var(--accent3); border: 1px solid rgba(106,247,200,.3); }
+    .badge-obsolete { background: rgba(107,107,128,.1); color: var(--muted); border: 1px solid rgba(107,107,128,.3); }
+
+    /* COMPARE TABLE */
+    .compare-wrap { overflow-x: auto; }
+    table {
+      width: 100%; border-collapse: collapse;
+      font-size: .9rem;
+    }
+    thead tr { border-bottom: 2px solid var(--accent); }
+    thead th {
+      font-family: 'Space Mono', monospace;
+      font-size: .7rem; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--accent); padding: 1rem .8rem; text-align: left;
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .2s;
+    }
+    tbody tr:hover { background: var(--card); }
+    tbody td { padding: .85rem .8rem; color: var(--muted); }
+    tbody td:first-child { color: var(--text); font-weight: 500; }
+    .check { color: var(--accent3); }
+    .cross { color: #f76a6a; }
+    .star { color: var(--accent); }
+
+    /* COMMANDS */
+    .cmd-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1px; background: var(--border);
+      border: 1px solid var(--border);
+    }
+    .cmd-card {
+      background: var(--card);
+      padding: 1.5rem;
+      transition: background .2s;
+    }
+    .cmd-card:hover { background: #1c1c28; }
+    .cmd-code {
+      font-family: 'Space Mono', monospace;
+      font-size: .85rem;
+      color: var(--accent);
+      margin-bottom: .6rem;
+      display: flex; align-items: center; gap: .5rem;
+    }
+    .cmd-code::before {
+      content: '$'; color: var(--accent3); font-size: .75rem;
+    }
+    .cmd-desc { color: var(--muted); font-size: .875rem; line-height: 1.6; }
+
+    /* FLOW */
+    .flow {
+      display: flex; flex-wrap: wrap; gap: 0; position: relative;
+    }
+    .flow-step {
+      flex: 1; min-width: 140px;
+      padding: 2rem 1.5rem;
+      border: 1px solid var(--border);
+      position: relative;
+      opacity: 0; transform: translateY(20px);
+      transition: opacity .4s, transform .4s;
+    }
+    .flow-step.visible { opacity: 1; transform: none; }
+    .flow-step:not(:last-child)::after {
+      content: '→';
+      position: absolute; right: -12px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent); font-size: 1.2rem;
+      z-index: 2;
+    }
+    .step-num {
+      font-family: 'Space Mono', monospace;
+      font-size: 2rem; color: var(--border);
+      font-weight: 700; margin-bottom: .5rem;
+    }
+    .step-name {
+      font-size: .9rem; font-weight: 500;
+      margin-bottom: .4rem; color: var(--text);
+    }
+    .step-desc { font-size: .8rem; color: var(--muted); line-height: 1.5; }
+
+    /* FOOTER */
+    footer {
+      position: relative; z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 2.5rem 3rem;
+      max-width: 1200px; margin: 0 auto;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 1rem;
+    }
+    footer p {
+      font-family: 'Space Mono', monospace;
+      font-size: .72rem; color: var(--muted);
+    }
+    footer span { color: var(--accent); }
+
+    /* ANIMATIONS */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* DIVIDER */
+    .divider {
+      border: none; border-top: 1px solid var(--border);
+      margin: 0 3rem;
+    }
+
+    @media (max-width: 700px) {
+      nav { padding: 1rem 1.5rem; }
+      .nav-links { display: none; }
+      .hero { padding: 7rem 1.5rem 3rem; }
+      section { padding: 4rem 1.5rem; }
+      .flow-step:not(:last-child)::after { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<nav>
+  <div class="nav-logo">// VCS · UNESC · 2026</div>
+  <ul class="nav-links">
+    <li><a href="#ferramentas">Ferramentas</a></li>
+    <li><a href="#comparativo">Comparativo</a></li>
+    <li><a href="#github">GitHub</a></li>
+    <li><a href="#fluxo">Fluxo</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <span class="hero-tag">ATPS · Desenvolvimento Web Front End</span>
+  <h1>Sistemas de Controle de <em>Versão</em></h1>
+  <p>Uma pesquisa sobre as principais ferramentas de versionamento de código, do SVN centralizado ao ecossistema distribuído do Git e GitHub.</p>
+  <div class="hero-authors">
+    <strong>João Pedro da Silva Souza</strong><br>
+    <strong>Pedro Henrique Prezilius Tresmann</strong><br>
+    Prof. Daniel Rossi de Jesus · UNESC · 2026
+  </div>
+  <div class="scroll-hint">scroll para explorar</div>
+</div>
+
+<hr class="divider" />
+
+<!-- FERRAMENTAS -->
+<section id="ferramentas">
+  <div class="section-label">01 — Evolução</div>
+  <h2 class="section-title">As ferramentas ao longo do tempo</h2>
+  <p class="section-sub">Cada geração de VCS surgiu para resolver as limitações da anterior, culminando no Git como padrão global.</p>
+
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-year">1986</div>
+      <div class="timeline-name">CVS — Concurrent Versions System</div>
+      <div class="timeline-desc">Primeira ferramenta a ganhar adoção massiva. Permitia que múltiplos desenvolvedores atualizassem um repositório central, mas sofria com ausência de commits atômicos — falhas de rede podiam corromper o repositório inteiro.</div>
+      <span class="badge badge-central">Centralizado</span>
+      <span class="badge badge-obsolete">Obsoleto</span>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-year">2000</div>
+      <div class="timeline-name">SVN — Apache Subversion</div>
+      <div class="timeline-desc">Criado para substituir o CVS, introduziu commits atômicos (tudo ou nada), melhor rastreamento de diretórios e metadados. Tornou-se padrão corporativo na primeira década dos anos 2000 e ainda é usado em ambientes empresariais.</div>
+      <span class="badge badge-central">Centralizado</span>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-year">2005</div>
+      <div class="timeline-name">Mercurial</div>
+      <div class="timeline-desc">Marcou a transição para o modelo distribuído — cada desenvolvedor possui uma cópia completa do repositório. Interface amigável e alta performance. Perdeu terreno para o Git após o GitHub se consolidar como plataforma dominante.</div>
+      <span class="badge badge-dist">Distribuído</span>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-year">2005</div>
+      <div class="timeline-name">Git ★ Padrão atual</div>
+      <div class="timeline-desc">Criado por Linus Torvalds para o desenvolvimento do kernel Linux. Trata dados como snapshots do sistema de arquivos. Branching extremamente rápido e barato. Mais de 93% dos desenvolvedores profissionais usam Git (Stack Overflow Survey 2023).</div>
+      <span class="badge badge-dist">Distribuído</span>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- COMPARATIVO -->
+<section id="comparativo">
+  <div class="section-label">02 — Análise</div>
+  <h2 class="section-title">Comparativo técnico</h2>
+  <p class="section-sub">A ruptura crítica ocorreu entre 2000 e 2005, com a mudança do paradigma centralizado para o distribuído.</p>
+
+  <div class="compare-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Critério</th>
+          <th>CVS</th>
+          <th>SVN</th>
+          <th>Mercurial</th>
+          <th>Git</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Ano de criação</td>
+          <td>1986</td><td>2000</td><td>2005</td><td>2005</td>
+        </tr>
+        <tr>
+          <td>Modelo</td>
+          <td>Central</td><td>Central</td><td>Distribuído</td><td>Distribuído</td>
+        </tr>
+        <tr>
+          <td>Commits atômicos</td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="check">✓</span></td>
+          <td><span class="check">✓</span></td>
+          <td><span class="check">✓</span></td>
+        </tr>
+        <tr>
+          <td>Branching</td>
+          <td>Lento</td><td>Moderado</td><td>Rápido</td><td><span class="star">★ Muito rápido</span></td>
+        </tr>
+        <tr>
+          <td>Trabalho offline</td>
+          <td><span class="cross">Inviável</span></td>
+          <td>Restrito</td>
+          <td><span class="check">Total</span></td>
+          <td><span class="check">Total</span></td>
+        </tr>
+        <tr>
+          <td>Uso atual</td>
+          <td><span style="color:var(--muted)">Obsoleto</span></td>
+          <td>Legados</td>
+          <td>Declínio</td>
+          <td><span class="star">Dominante</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- GITHUB -->
+<section id="github">
+  <div class="section-label">03 — GitHub</div>
+  <h2 class="section-title">Da implementação ao uso</h2>
+  <p class="section-sub">O GitHub adiciona colaboração remota, hospedagem e ferramentas de CI/CD ao Git, tornando-o uma plataforma completa de desenvolvimento.</p>
+
+  <div class="cmd-grid">
+    <div class="cmd-card">
+      <div class="cmd-code">git init</div>
+      <div class="cmd-desc">Inicializa um novo repositório Git na pasta atual.</div>
+    </div>
+    <div class="cmd-card">
+      <div class="cmd-code">git clone [url]</div>
+      <div class="cmd-desc">Copia um repositório remoto inteiro para a máquina local, incluindo todo o histórico.</div>
+    </div>
+    <div class="cmd-card">
+      <div class="cmd-code">git status</div>
+      <div class="cmd-desc">Exibe o estado dos arquivos: modificados, staged ou não rastreados.</div>
+    </div>
+    <div class="cmd-card">
+      <div class="cmd-code">git add .</div>
+      <div class="cmd-desc">Adiciona todas as alterações na staging area, preparando-as para o commit.</div>
+    </div>
+    <div class="cmd-card">
+      <div class="cmd-code">git commit -m "msg"</div>
+      <div class="cmd-desc">Registra o snapshot atual no histórico local com uma mensagem descritiva.</div>
+    </div>
+    <div class="cmd-card">
+      <div class="cmd-code">git push origin main</div>
+      <div class="cmd-desc">Envia os commits locais para o repositório remoto no GitHub.</div>
+    </div>
+    <div class="cmd-card">
+      <div class="cmd-code">git pull</div>
+      <div class="cmd-desc">Baixa e integra as atualizações do repositório remoto para a máquina local.</div>
+    </div>
+    <div class="cmd-card">
+      <div class="cmd-code">git branch -b feature</div>
+      <div class="cmd-desc">Cria e muda para uma nova branch, isolando o desenvolvimento de uma funcionalidade.</div>
+    </div>
+    <div class="cmd-card">
+      <div class="cmd-code">git merge [branch]</div>
+      <div class="cmd-desc">Une o histórico da branch especificada à branch atual (geralmente main).</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- FLUXO -->
+<section id="fluxo">
+  <div class="section-label">04 — GitHub Flow</div>
+  <h2 class="section-title">Fluxo de trabalho</h2>
+  <p class="section-sub">O GitHub Flow é um modelo leve baseado em branches para equipes que fazem deploys frequentes.</p>
+
+  <div class="flow">
+    <div class="flow-step">
+      <div class="step-num">01</div>
+      <div class="step-name">Criar branch</div>
+      <div class="step-desc">Cria uma branch isolada a partir da main para desenvolver a nova feature.</div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">02</div>
+      <div class="step-name">Commits</div>
+      <div class="step-desc">Realiza commits frequentes com mensagens claras descrevendo cada mudança.</div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">03</div>
+      <div class="step-name">Pull Request</div>
+      <div class="step-desc">Abre um PR no GitHub para revisão de código pelos colaboradores da equipe.</div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">04</div>
+      <div class="step-name">Revisão</div>
+      <div class="step-desc">Colegas comentam, aprovam ou solicitam ajustes antes de aceitar o código.</div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">05</div>
+      <div class="step-name">Merge</div>
+      <div class="step-desc">Após aprovação, a branch é fundida à main e o código vai para produção.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>UNESC · Tecnologia em Desenvolvimento Web Front End · 2026</p>
+  <p>João Pedro da Silva Souza · Pedro Henrique Prezilius Tresmann · Prof. <span>Daniel Rossi de Jesus</span></p>
+</footer>
+
+<script>
+  // Intersection Observer para animações de entrada
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 100);
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: .15 });
+
+  document.querySelectorAll('.timeline-item, .flow-step').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
